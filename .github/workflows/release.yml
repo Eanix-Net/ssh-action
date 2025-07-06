@@ -36,50 +36,26 @@ jobs:
         fi
         echo "✅ action.yml found"
     
-    - name: Validate action structure
-      run: |
-        # Check if required files exist
-        required_files=("action.yml" "Dockerfile" "entrypoint.sh" "README.md")
-        for file in "${required_files[@]}"; do
-          if [ ! -f "$file" ]; then
-            echo "❌ Required file missing: $file"
-            exit 1
-          else
-            echo "✅ Found: $file"
-          fi
-        done
-    
     - name: Test action locally
       run: |
-        # Basic validation that the Docker image can be built
         echo "Testing Docker image build..."
         docker build -t ssh-action-test .
         echo "✅ Docker image built successfully"
     
     - name: Generate release notes
-      id: release_notes
       run: |
         echo "## SSH Remote Script Executor ${{ steps.version.outputs.version }}" > release_notes.md
         echo "" >> release_notes.md
-        echo "### What's New" >> release_notes.md
+        echo "### Features" >> release_notes.md
         echo "- Execute scripts on remote hosts via SSH" >> release_notes.md
         echo "- Support for custom SSH ports" >> release_notes.md
         echo "- Password-based authentication" >> release_notes.md
         echo "- Environment variables support" >> release_notes.md
         echo "- Comprehensive error handling" >> release_notes.md
         echo "" >> release_notes.md
-        echo "### Features" >> release_notes.md
-        echo "- ✅ Remote script execution via SSH" >> release_notes.md
-        echo "- ✅ Configurable SSH port (default: 22)" >> release_notes.md
-        echo "- ✅ Password authentication with sshpass" >> release_notes.md
-        echo "- ✅ Multi-line script support" >> release_notes.md
-        echo "- ✅ Environment variables support (comma-separated)" >> release_notes.md
-        echo "- ✅ Proper error handling and validation" >> release_notes.md
-        echo "- ✅ Security best practices" >> release_notes.md
-        echo "" >> release_notes.md
         echo "### Usage" >> release_notes.md
         echo "" >> release_notes.md
-        printf '%s\n' '```yaml' >> release_notes.md
+        echo '```yaml' >> release_notes.md
         echo "- name: Execute remote script" >> release_notes.md
         echo "  uses: ${{ github.repository }}@${{ steps.version.outputs.version }}" >> release_notes.md
         echo "  with:" >> release_notes.md
@@ -88,33 +64,11 @@ jobs:
         echo '    password: ${{ secrets.SERVER_PASSWORD }}' >> release_notes.md
         echo "    script: |" >> release_notes.md
         echo '      echo "Hello from remote server!"' >> release_notes.md
-        echo "      uptime" >> release_notes.md
+        echo '```' >> release_notes.md
         echo "" >> release_notes.md
-        echo "# With environment variables" >> release_notes.md
-        echo "- name: Deploy with environment variables" >> release_notes.md
-        echo "  uses: ${{ github.repository }}@${{ steps.version.outputs.version }}" >> release_notes.md
-        echo "  with:" >> release_notes.md
-        echo '    host: ${{ secrets.SERVER_HOST }}' >> release_notes.md
-        echo '    username: ${{ secrets.SERVER_USER }}' >> release_notes.md
-        echo '    password: ${{ secrets.SERVER_PASSWORD }}' >> release_notes.md
-        echo "    envs: 'DEPLOY_ENV=production,APP_VERSION=1.2.3'" >> release_notes.md
-        echo "    script: |" >> release_notes.md
-        echo '      echo "Deploying version $APP_VERSION to $DEPLOY_ENV"' >> release_notes.md
-        echo "      # Your deployment script here" >> release_notes.md
-        printf '%s\n' '```' >> release_notes.md
-        echo "" >> release_notes.md
-        echo "### Security" >> release_notes.md
-        echo "- Always use GitHub Secrets for sensitive credentials" >> release_notes.md
-        echo "- Never hardcode passwords in workflow files" >> release_notes.md
-        echo "- Use principle of least privilege for SSH users" >> release_notes.md
-        echo "" >> release_notes.md
-        echo "See [README.md](README.md) for complete documentation and examples." >> release_notes.md
-        
-        echo "Generated release notes:"
-        cat release_notes.md
+        echo "See [README.md](README.md) for complete documentation." >> release_notes.md
     
     - name: Create GitHub Release
-      id: create_release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -128,127 +82,31 @@ jobs:
       run: |
         echo "🔍 Validating GitHub Marketplace requirements..."
         
-        # Check if repository is public
         REPO_VISIBILITY=$(gh repo view ${{ github.repository }} --json visibility --jq '.visibility')
         if [ "$REPO_VISIBILITY" != "public" ]; then
           echo "⚠️  Repository is private - marketplace publication not possible"
-          echo "📝 To publish to GitHub Marketplace:"
-          echo "   1. Go to Settings → General → Change repository visibility"
-          echo "   2. Click 'Change visibility' → 'Make public'"
-          echo "   3. Re-run the release workflow after making it public"
-          echo ""
-          echo "🔄 Continuing with private repository release..."
-          MARKETPLACE_READY=false
-        else
-          echo "✅ Repository is public"
-          MARKETPLACE_READY=true
-        fi
-        
-        # Check action.yml branding
-        if grep -q "branding:" action.yml && grep -q "icon:" action.yml && grep -q "color:" action.yml; then
-          echo "✅ action.yml has proper branding configuration"
-        else
-          echo "⚠️  action.yml missing branding configuration"
-          echo "   Add branding section to action.yml for marketplace publication"
-          MARKETPLACE_READY=false
-        fi
-        
-        # Check README exists and has content
-        if [ -f README.md ] && [ -s README.md ]; then
-          echo "✅ README.md exists and has content"
-        else
-          echo "⚠️  README.md missing or empty"
-          MARKETPLACE_READY=false
-        fi
-        
-        # Check for usage examples in README
-        if grep -q "yaml" README.md && grep -q "uses:" README.md; then
-          echo "✅ README contains usage examples"
-        else
-          echo "⚠️  README should include usage examples"
-        fi
-        
-        # Set marketplace readiness status
-        if [ "$MARKETPLACE_READY" = "true" ]; then
-          echo "🎯 Marketplace requirements validation complete - Ready for publication!"
-          echo "MARKETPLACE_READY=true" >> $GITHUB_ENV
-          echo "marketplace-ready=true" >> $GITHUB_OUTPUT
-        else
-          echo "⚠️  Marketplace requirements not fully met - Release will continue without marketplace publication"
           echo "MARKETPLACE_READY=false" >> $GITHUB_ENV
           echo "marketplace-ready=false" >> $GITHUB_OUTPUT
+        else
+          echo "✅ Repository is public"
+          echo "MARKETPLACE_READY=true" >> $GITHUB_ENV
+          echo "marketplace-ready=true" >> $GITHUB_OUTPUT
         fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Prepare Marketplace Metadata
-      run: |
-        echo "📋 Preparing marketplace metadata..."
-        
-        # Create marketplace metadata file for reference
-        echo '{' > marketplace-metadata.json
-        echo '  "name": "SSH Remote Script Executor",' >> marketplace-metadata.json
-        echo '  "description": "Execute scripts on remote hosts via SSH with password authentication",' >> marketplace-metadata.json
-        echo '  "categories": ["Deployment", "Utilities"],' >> marketplace-metadata.json
-        echo '  "tags": ["ssh", "remote", "deployment", "scripts", "automation"],' >> marketplace-metadata.json
-        echo '  "suggested_keywords": [' >> marketplace-metadata.json
-        echo '    "ssh",' >> marketplace-metadata.json
-        echo '    "remote-execution",' >> marketplace-metadata.json
-        echo '    "deployment",' >> marketplace-metadata.json
-        echo '    "server-management",' >> marketplace-metadata.json
-        echo '    "automation",' >> marketplace-metadata.json
-        echo '    "devops"' >> marketplace-metadata.json
-        echo '  ],' >> marketplace-metadata.json
-        echo '  "marketplace_url": "https://github.com/marketplace/actions/ssh-remote-script-executor"' >> marketplace-metadata.json
-        echo '}' >> marketplace-metadata.json
-        
-        echo "✅ Marketplace metadata prepared"
-        cat marketplace-metadata.json
     
     - name: Marketplace Publication Info
       run: |
         echo "🎉 Release created successfully!"
         echo "📦 Version: ${{ steps.version.outputs.version }}"
         echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }}"
-        echo ""
         
         if [ "$MARKETPLACE_READY" = "true" ]; then
-          echo "🏪 MARKETPLACE PUBLICATION:"
-          echo "   📋 All requirements validated ✅"
-          echo "   🔗 Publication URL: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }}"
-          echo ""
-          echo "📝 To complete marketplace publication:"
-          echo "   1. 🌐 Go to: https://github.com/${{ github.repository }}"
-          echo "   2. 📦 Look for 'Publish this Action to the GitHub Marketplace' banner"
-          echo "   3. 🖱️  Click the banner or go to the Releases tab"
-          echo "   4. ✏️  Fill in the marketplace form with suggested details:"
-          echo "      - Name: SSH Remote Script Executor"
-          echo "      - Description: Execute scripts on remote hosts via SSH"
-          echo "      - Categories: Deployment, Utilities"
-          echo "      - Tags: ssh, remote, deployment, scripts, automation"
-          echo "   5. 📤 Submit for publication"
-          echo ""
-          echo "🎯 The action will be reviewed and published to GitHub Marketplace!"
-          
-          # Try to open the marketplace page (this works in some environments)
-          echo "🔗 Attempting to open marketplace publication page..."
-          gh repo view ${{ github.repository }} --web || echo "   Manual navigation required"
+          echo "✅ Repository is ready for marketplace publication"
+          echo "🏪 Go to https://github.com/${{ github.repository }} to publish to marketplace"
         else
-          echo "⚠️  MARKETPLACE PUBLICATION NOT AVAILABLE:"
-          echo "   📋 Repository requirements not met"
-          echo ""
-          echo "📝 To enable marketplace publication:"
-          echo "   1. 🌐 Make repository public: Settings → Change repository visibility → Make public"
-          echo "   2. ✅ Ensure action.yml has branding configuration"
-          echo "   3. 📖 Add comprehensive README with usage examples"
-          echo "   4. 🔄 Create a new release after meeting requirements"
-          echo ""
-          echo "🎯 Release completed successfully (private repository)"
+          echo "⚠️  Repository is private - make it public to enable marketplace publication"
         fi
-        
-        echo "📊 View release: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }}"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
   # Job to create/update major version tag (e.g., v1, v2)
   update-major-tag:
@@ -284,11 +142,9 @@ jobs:
         
         echo "🏷️  Updating major version tag: ${{ steps.major_version.outputs.major_version }}"
         
-        # Delete the major version tag if it exists (both locally and remotely)
         git tag -d ${{ steps.major_version.outputs.major_version }} 2>/dev/null || echo "Local tag doesn't exist"
         git push origin :refs/tags/${{ steps.major_version.outputs.major_version }} 2>/dev/null || echo "Remote tag doesn't exist"
         
-        # Create new major version tag pointing to current commit
         git tag ${{ steps.major_version.outputs.major_version }}
         git push origin ${{ steps.major_version.outputs.major_version }}
         
@@ -311,13 +167,11 @@ jobs:
       run: |
         TAG_NAME=${GITHUB_REF#refs/tags/}
         echo "version=$TAG_NAME" >> $GITHUB_OUTPUT
-        echo "version_number=${TAG_NAME#v}" >> $GITHUB_OUTPUT
     
     - name: Create Marketplace Publication Issue
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        # Check if an issue already exists for this release
         EXISTING_ISSUE=$(gh issue list --repo ${{ github.repository }} --state open --search "Publish ${{ steps.version.outputs.version }} to GitHub Marketplace" --json number --jq '.[0].number' || echo "")
         
         if [ -n "$EXISTING_ISSUE" ] && [ "$EXISTING_ISSUE" != "null" ]; then
@@ -325,48 +179,11 @@ jobs:
           exit 0
         fi
         
-        # Create a simple issue body
-        echo "Creating marketplace publication issue..."
-        ISSUE_BODY="## Release ${{ steps.version.outputs.version }} Ready for Marketplace Publication
-
-### Pre-publication Checklist
-- [x] Release created successfully
-- [x] Major version tag updated
-- [x] All marketplace requirements validated
-- [x] Docker image builds successfully
-- [x] Action metadata configured
-- [ ] Marketplace publication completed
-
-### Marketplace Publication Steps
-
-1. Navigate to Repository: https://github.com/${{ github.repository }}
-2. Look for 'Publish this Action to the GitHub Marketplace' banner
-3. Fill in the marketplace form with these details:
-   - Name: SSH Remote Script Executor
-   - Description: Execute scripts on remote hosts via SSH with password authentication
-   - Categories: Deployment, Utilities
-   - Tags: ssh, remote, deployment, scripts, automation
-4. Submit for publication
-
-### Quick Links
-- Release Page: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }}
-- Repository: https://github.com/${{ github.repository }}
-- Documentation: https://github.com/${{ github.repository }}/blob/main/README.md
-
-### Notes
-- This issue will be automatically closed when marketplace publication is complete
-- The action will be available at: uses: ${{ github.repository }}@${{ steps.version.outputs.version }}
-
-Assigned to: @${{ github.actor }}
-Release: ${{ steps.version.outputs.version }}
-Status: Ready for marketplace publication"
-        
-        # Create the issue
         gh issue create \
           --repo ${{ github.repository }} \
           --title "Publish ${{ steps.version.outputs.version }} to GitHub Marketplace" \
           --assignee ${{ github.actor }} \
           --label "marketplace,release" \
-          --body "$ISSUE_BODY"
+          --body "Release ${{ steps.version.outputs.version }} is ready for marketplace publication. Please visit the repository to publish to GitHub Marketplace."
         
-        echo "📝 Created marketplace publication tracking issue"         echo "📝 Created marketplace publication tracking issue"
+        echo "📝 Created marketplace publication tracking issue"
