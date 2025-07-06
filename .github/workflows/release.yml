@@ -59,56 +59,56 @@ jobs:
     - name: Generate release notes
       id: release_notes
       run: |
-        cat > release_notes.md << 'EOF'
-        ## SSH Remote Script Executor ${{ steps.version.outputs.version }}
-        
-        ### What's New
-        - Execute scripts on remote hosts via SSH
-        - Support for custom SSH ports
-        - Password-based authentication
-        - Comprehensive error handling
-        
-        ### Features
-        - ✅ Remote script execution via SSH
-        - ✅ Configurable SSH port (default: 22)
-        - ✅ Password authentication with sshpass
-        - ✅ Multi-line script support
-        - ✅ Environment variables support (comma-separated)
-        - ✅ Proper error handling and validation
-        - ✅ Security best practices
-        
-        ### Usage
-        ```yaml
-        - name: Execute remote script
-          uses: your-username/ssh-action@${{ steps.version.outputs.version }}
-          with:
-            host: ${{ secrets.SERVER_HOST }}
-            username: ${{ secrets.SERVER_USER }}
-            password: ${{ secrets.SERVER_PASSWORD }}
-            script: |
-              echo "Hello from remote server!"
-              uptime
-        
-        # With environment variables
-        - name: Deploy with environment variables
-          uses: your-username/ssh-action@${{ steps.version.outputs.version }}
-          with:
-            host: ${{ secrets.SERVER_HOST }}
-            username: ${{ secrets.SERVER_USER }}
-            password: ${{ secrets.SERVER_PASSWORD }}
-            envs: 'DEPLOY_ENV=production,APP_VERSION=1.2.3'
-            script: |
-              echo "Deploying version $APP_VERSION to $DEPLOY_ENV"
-              # Your deployment script here
-        ```
-        
-        ### Security
-        - Always use GitHub Secrets for sensitive credentials
-        - Never hardcode passwords in workflow files
-        - Use principle of least privilege for SSH users
-        
-        See [README.md](README.md) for complete documentation and examples.
-        EOF
+        echo "## SSH Remote Script Executor ${{ steps.version.outputs.version }}" > release_notes.md
+        echo "" >> release_notes.md
+        echo "### What's New" >> release_notes.md
+        echo "- Execute scripts on remote hosts via SSH" >> release_notes.md
+        echo "- Support for custom SSH ports" >> release_notes.md
+        echo "- Password-based authentication" >> release_notes.md
+        echo "- Environment variables support" >> release_notes.md
+        echo "- Comprehensive error handling" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "### Features" >> release_notes.md
+        echo "- ✅ Remote script execution via SSH" >> release_notes.md
+        echo "- ✅ Configurable SSH port (default: 22)" >> release_notes.md
+        echo "- ✅ Password authentication with sshpass" >> release_notes.md
+        echo "- ✅ Multi-line script support" >> release_notes.md
+        echo "- ✅ Environment variables support (comma-separated)" >> release_notes.md
+        echo "- ✅ Proper error handling and validation" >> release_notes.md
+        echo "- ✅ Security best practices" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "### Usage" >> release_notes.md
+        echo "" >> release_notes.md
+        echo '```yaml' >> release_notes.md
+        echo "- name: Execute remote script" >> release_notes.md
+        echo "  uses: ${{ github.repository }}@${{ steps.version.outputs.version }}" >> release_notes.md
+        echo "  with:" >> release_notes.md
+        echo '    host: ${{ secrets.SERVER_HOST }}' >> release_notes.md
+        echo '    username: ${{ secrets.SERVER_USER }}' >> release_notes.md
+        echo '    password: ${{ secrets.SERVER_PASSWORD }}' >> release_notes.md
+        echo "    script: |" >> release_notes.md
+        echo '      echo "Hello from remote server!"' >> release_notes.md
+        echo "      uptime" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "# With environment variables" >> release_notes.md
+        echo "- name: Deploy with environment variables" >> release_notes.md
+        echo "  uses: ${{ github.repository }}@${{ steps.version.outputs.version }}" >> release_notes.md
+        echo "  with:" >> release_notes.md
+        echo '    host: ${{ secrets.SERVER_HOST }}' >> release_notes.md
+        echo '    username: ${{ secrets.SERVER_USER }}' >> release_notes.md
+        echo '    password: ${{ secrets.SERVER_PASSWORD }}' >> release_notes.md
+        echo "    envs: 'DEPLOY_ENV=production,APP_VERSION=1.2.3'" >> release_notes.md
+        echo "    script: |" >> release_notes.md
+        echo '      echo "Deploying version $APP_VERSION to $DEPLOY_ENV"' >> release_notes.md
+        echo "      # Your deployment script here" >> release_notes.md
+        echo '```' >> release_notes.md
+        echo "" >> release_notes.md
+        echo "### Security" >> release_notes.md
+        echo "- Always use GitHub Secrets for sensitive credentials" >> release_notes.md
+        echo "- Never hardcode passwords in workflow files" >> release_notes.md
+        echo "- Use principle of least privilege for SSH users" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "See [README.md](README.md) for complete documentation and examples." >> release_notes.md
         
         echo "Generated release notes:"
         cat release_notes.md
