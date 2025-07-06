@@ -96,7 +96,7 @@ jobs:
       id: create_release
       uses: actions/create-release@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
       with:
         tag_name: ${{ steps.version.outputs.version }}
         release_name: SSH Remote Script Executor ${{ steps.version.outputs.version }}
