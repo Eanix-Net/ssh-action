@@ -1,0 +1,153 @@
+name: Release and Publish to Marketplace
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.0.0, v2.1.3, etc.
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Extract version from tag
+      id: version
+      run: |
+        TAG_NAME=${GITHUB_REF#refs/tags/}
+        echo "version=$TAG_NAME" >> $GITHUB_OUTPUT
+        echo "version_number=${TAG_NAME#v}" >> $GITHUB_OUTPUT
+    
+    - name: Verify action.yml exists
+      run: |
+        if [ ! -f action.yml ]; then
+          echo "Error: action.yml not found"
+          exit 1
+        fi
+        echo "✅ action.yml found"
+    
+    - name: Validate action structure
+      run: |
+        # Check if required files exist
+        required_files=("action.yml" "Dockerfile" "entrypoint.sh" "README.md")
+        for file in "${required_files[@]}"; do
+          if [ ! -f "$file" ]; then
+            echo "❌ Required file missing: $file"
+            exit 1
+          else
+            echo "✅ Found: $file"
+          fi
+        done
+    
+    - name: Test action locally
+      run: |
+        # Basic validation that the Docker image can be built
+        echo "Testing Docker image build..."
+        docker build -t ssh-action-test .
+        echo "✅ Docker image built successfully"
+    
+    - name: Generate release notes
+      id: release_notes
+      run: |
+        cat > release_notes.md << 'EOF'
+        ## SSH Remote Script Executor ${{ steps.version.outputs.version }}
+        
+        ### What's New
+        - Execute scripts on remote hosts via SSH
+        - Support for custom SSH ports
+        - Password-based authentication
+        - Comprehensive error handling
+        
+        ### Features
+        - ✅ Remote script execution via SSH
+        - ✅ Configurable SSH port (default: 22)
+        - ✅ Password authentication with sshpass
+        - ✅ Multi-line script support
+        - ✅ Proper error handling and validation
+        - ✅ Security best practices
+        
+        ### Usage
+        ```yaml
+        - name: Execute remote script
+          uses: your-username/ssh-action@${{ steps.version.outputs.version }}
+          with:
+            host: ${{ secrets.SERVER_HOST }}
+            username: ${{ secrets.SERVER_USER }}
+            password: ${{ secrets.SERVER_PASSWORD }}
+            script: |
+              echo "Hello from remote server!"
+              uptime
+        ```
+        
+        ### Security
+        - Always use GitHub Secrets for sensitive credentials
+        - Never hardcode passwords in workflow files
+        - Use principle of least privilege for SSH users
+        
+        See [README.md](README.md) for complete documentation and examples.
+        EOF
+        
+        echo "Generated release notes:"
+        cat release_notes.md
+    
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.version }}
+        release_name: SSH Remote Script Executor ${{ steps.version.outputs.version }}
+        body_path: release_notes.md
+        draft: false
+        prerelease: false
+    
+    - name: Marketplace Publication Info
+      run: |
+        echo "🎉 Release created successfully!"
+        echo "📦 Your action will be automatically available on GitHub Marketplace"
+        echo "🔗 Release URL: ${{ steps.create_release.outputs.html_url }}"
+        echo ""
+        echo "ℹ️  To publish to GitHub Marketplace:"
+        echo "   1. Ensure your repository is public"
+        echo "   2. The action.yml file has proper branding (✅ already configured)"
+        echo "   3. Go to your repository's main page"
+        echo "   4. Click 'Publish this Action to the GitHub Marketplace'"
+        echo "   5. Fill in the marketplace details and submit"
+        
+  # Job to create/update major version tag (e.g., v1, v2)
+  update-major-tag:
+    runs-on: ubuntu-latest
+    needs: release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Extract major version
+      id: major_version
+      run: |
+        TAG_NAME=${GITHUB_REF#refs/tags/}
+        MAJOR_VERSION=$(echo $TAG_NAME | cut -d. -f1)
+        echo "major_version=$MAJOR_VERSION" >> $GITHUB_OUTPUT
+        echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+    
+    - name: Update major version tag
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        
+        # Delete the major version tag if it exists
+        git tag -d ${{ steps.major_version.outputs.major_version }} || true
+        git push origin :refs/tags/${{ steps.major_version.outputs.major_version }} || true
+        
+        # Create new major version tag pointing to current commit
+        git tag ${{ steps.major_version.outputs.major_version }}
+        git push origin ${{ steps.major_version.outputs.major_version }}
+        
+        echo "✅ Updated major version tag: ${{ steps.major_version.outputs.major_version }}" 
