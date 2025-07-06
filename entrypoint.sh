@@ -50,19 +50,27 @@ chmod 600 ~/.ssh/config
 TEMP_SCRIPT=$(mktemp)
 
 # Process environment variables if provided
+ENV_EXPORTS=""
 if [ -n "$ENVS" ]; then
-    echo "Setting environment variables..."
-    # Add environment variable exports to the script
-    echo "# Environment variables" > "$TEMP_SCRIPT"
+    echo "Processing environment variables..."
+    echo "Raw ENVS input: '$ENVS'"
     
-    # Split ENVS by comma and process each one
-    IFS=',' read -ra ENV_ARRAY <<< "$ENVS"
+    # Replace newlines with commas and handle both comma and newline delimited input
+    CLEANED_ENVS=$(echo "$ENVS" | tr '\n' ',' | sed 's/,,*/,/g' | sed 's/^,//;s/,$//')
+    echo "Cleaned ENVS: '$CLEANED_ENVS'"
+    
+    # Split by comma and process each one
+    IFS=',' read -ra ENV_ARRAY <<< "$CLEANED_ENVS"
+    echo "Number of environment variables to process: ${#ENV_ARRAY[@]}"
     for env_var in "${ENV_ARRAY[@]}"; do
+        echo "Processing env_var: '$env_var'"
         # Trim whitespace
         env_var=$(echo "$env_var" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        echo "After trimming: '$env_var'"
         
         # Skip empty values
         if [ -z "$env_var" ]; then
+            echo "  Skipping empty value"
             continue
         fi
         
@@ -74,9 +82,12 @@ if [ -n "$ENVS" ]; then
             
             # Validate variable name (should start with letter or underscore, contain only alphanumeric and underscore)
             if [[ "$var_name" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
-                # Safely export the variable (escape special characters in value)
-                printf 'export %s=%q\n' "$var_name" "$var_value" >> "$TEMP_SCRIPT"
-                echo "  ✅ Set: $var_name"
+                # Build environment variable exports for SSH command (one per line)
+                if [ -n "$ENV_EXPORTS" ]; then
+                    ENV_EXPORTS="${ENV_EXPORTS}\n"
+                fi
+                ENV_EXPORTS="${ENV_EXPORTS}export ${var_name}=$(printf '%q' "$var_value")"
+                echo "  ✅ Will set: $var_name"
             else
                 echo "  ⚠️  Warning: Invalid variable name '$var_name', skipping"
             fi
@@ -84,12 +95,28 @@ if [ -n "$ENVS" ]; then
             echo "  ⚠️  Warning: Invalid format '$env_var', should be 'VAR=value', skipping"
         fi
     done
-    
-    echo "" >> "$TEMP_SCRIPT"
 fi
 
-# Add the main script
-echo "$SCRIPT" >> "$TEMP_SCRIPT"
+# Build the complete script with environment variables
+if [ -n "$ENV_EXPORTS" ]; then
+    echo "Setting environment variables in remote session..."
+    # Add environment variable exports at the beginning of the script
+    echo "# Environment variables" > "$TEMP_SCRIPT"
+    printf "%b\n" "$ENV_EXPORTS" >> "$TEMP_SCRIPT"
+    echo "" >> "$TEMP_SCRIPT"
+    # Add the main script
+    echo "$SCRIPT" >> "$TEMP_SCRIPT"
+else
+    # No environment variables, just add the main script
+    echo "$SCRIPT" > "$TEMP_SCRIPT"
+fi
+
+# Debug: Show the generated script (first 20 lines)
+echo "Generated script preview:"
+echo "========================="
+head -n 20 "$TEMP_SCRIPT" | sed 's/^/  /'
+echo "========================="
+echo ""
 
 # Execute the script on the remote host using sshpass
 echo "Executing script on remote host..."
