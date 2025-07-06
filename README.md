@@ -193,6 +193,39 @@ The action will fail if:
 - Use `sudo` in your script if elevated privileges are required
 - Verify file and directory permissions
 
+## Repository Setup
+
+### Quick Setup Script
+
+Use the interactive setup script to configure your repository:
+
+```bash
+./scripts/setup-repository.sh
+```
+
+This script helps you:
+- ✅ Check repository status
+- ✅ Make repository public (for marketplace)
+- ✅ Validate marketplace requirements
+- ✅ Create releases
+- ✅ Get setup instructions
+
+### Repository Visibility Options
+
+#### **Public Repository (Marketplace)**
+- ✅ Can be published to GitHub Marketplace
+- ✅ Discoverable by the community
+- ✅ Available for public use
+- ⚠️  Code is visible to everyone
+
+#### **Private Repository (Internal Use)**
+- ✅ Works perfectly for private use
+- ✅ Share with collaborators
+- ✅ All action features available
+- ❌ Cannot publish to marketplace
+
+Choose the option that best fits your needs!
+
 ## Contributing
 
 Feel free to submit issues and enhancement requests!

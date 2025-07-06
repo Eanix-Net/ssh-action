@@ -45,10 +45,21 @@ permissions:
 **Problem**: GitHub Marketplace requires public repositories.
 
 **Solution**: 
-1. Go to your repository Settings
-2. Scroll down to "Danger Zone"
-3. Click "Change repository visibility"
-4. Select "Make public"
+1. **Quick Setup**: Run the setup script:
+   ```bash
+   ./scripts/setup-repository.sh
+   ```
+   Choose option 1 to make repository public
+
+2. **Manual Method**:
+   - Go to your repository Settings
+   - Scroll down to "Danger Zone"
+   - Click "Change repository visibility"
+   - Select "Make public"
+
+3. **Alternative**: Keep repository private and skip marketplace publication
+   - The action will still work for private use
+   - You can publish later by making it public
 
 ### Missing Required Files
 

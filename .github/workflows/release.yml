@@ -14,6 +14,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    outputs:
+      marketplace-ready: ${{ steps.marketplace-check.outputs.marketplace-ready }}
     
     steps:
     - name: Checkout repository
@@ -122,32 +124,41 @@ jobs:
           --latest
     
     - name: Validate Marketplace Requirements
+      id: marketplace-check
       run: |
         echo "🔍 Validating GitHub Marketplace requirements..."
         
         # Check if repository is public
         REPO_VISIBILITY=$(gh repo view ${{ github.repository }} --json visibility --jq '.visibility')
         if [ "$REPO_VISIBILITY" != "public" ]; then
-          echo "❌ Repository must be public for marketplace publication"
-          echo "   Go to Settings → Change repository visibility → Make public"
-          exit 1
+          echo "⚠️  Repository is private - marketplace publication not possible"
+          echo "📝 To publish to GitHub Marketplace:"
+          echo "   1. Go to Settings → General → Change repository visibility"
+          echo "   2. Click 'Change visibility' → 'Make public'"
+          echo "   3. Re-run the release workflow after making it public"
+          echo ""
+          echo "🔄 Continuing with private repository release..."
+          MARKETPLACE_READY=false
+        else
+          echo "✅ Repository is public"
+          MARKETPLACE_READY=true
         fi
-        echo "✅ Repository is public"
         
         # Check action.yml branding
         if grep -q "branding:" action.yml && grep -q "icon:" action.yml && grep -q "color:" action.yml; then
           echo "✅ action.yml has proper branding configuration"
         else
-          echo "❌ action.yml missing branding configuration"
-          exit 1
+          echo "⚠️  action.yml missing branding configuration"
+          echo "   Add branding section to action.yml for marketplace publication"
+          MARKETPLACE_READY=false
         fi
         
         # Check README exists and has content
         if [ -f README.md ] && [ -s README.md ]; then
           echo "✅ README.md exists and has content"
         else
-          echo "❌ README.md missing or empty"
-          exit 1
+          echo "⚠️  README.md missing or empty"
+          MARKETPLACE_READY=false
         fi
         
         # Check for usage examples in README
@@ -157,7 +168,16 @@ jobs:
           echo "⚠️  README should include usage examples"
         fi
         
-        echo "🎯 Marketplace requirements validation complete!"
+        # Set marketplace readiness status
+        if [ "$MARKETPLACE_READY" = "true" ]; then
+          echo "🎯 Marketplace requirements validation complete - Ready for publication!"
+          echo "MARKETPLACE_READY=true" >> $GITHUB_ENV
+          echo "marketplace-ready=true" >> $GITHUB_OUTPUT
+        else
+          echo "⚠️  Marketplace requirements not fully met - Release will continue without marketplace publication"
+          echo "MARKETPLACE_READY=false" >> $GITHUB_ENV
+          echo "marketplace-ready=false" >> $GITHUB_OUTPUT
+        fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
@@ -187,35 +207,48 @@ jobs:
         echo "✅ Marketplace metadata prepared"
         cat marketplace-metadata.json
     
-    - name: Auto-Open Marketplace Publication
+    - name: Marketplace Publication Info
       run: |
-        echo "🚀 Opening marketplace publication page..."
-        echo ""
         echo "🎉 Release created successfully!"
         echo "📦 Version: ${{ steps.version.outputs.version }}"
         echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }}"
         echo ""
-        echo "🏪 MARKETPLACE PUBLICATION:"
-        echo "   📋 All requirements validated ✅"
-        echo "   🔗 Publication URL: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }}"
-        echo ""
-        echo "📝 To complete marketplace publication:"
-        echo "   1. 🌐 Go to: https://github.com/${{ github.repository }}"
-        echo "   2. 📦 Look for 'Publish this Action to the GitHub Marketplace' banner"
-        echo "   3. 🖱️  Click the banner or go to the Releases tab"
-        echo "   4. ✏️  Fill in the marketplace form with suggested details:"
-        echo "      - Name: SSH Remote Script Executor"
-        echo "      - Description: Execute scripts on remote hosts via SSH"
-        echo "      - Categories: Deployment, Utilities"
-        echo "      - Tags: ssh, remote, deployment, scripts, automation"
-        echo "   5. 📤 Submit for publication"
-        echo ""
-        echo "🎯 The action will be reviewed and published to GitHub Marketplace!"
-        echo "📊 View release: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }}"
         
-        # Try to open the marketplace page (this works in some environments)
-        echo "🔗 Attempting to open marketplace publication page..."
-        gh repo view ${{ github.repository }} --web || echo "   Manual navigation required"
+        if [ "$MARKETPLACE_READY" = "true" ]; then
+          echo "🏪 MARKETPLACE PUBLICATION:"
+          echo "   📋 All requirements validated ✅"
+          echo "   🔗 Publication URL: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }}"
+          echo ""
+          echo "📝 To complete marketplace publication:"
+          echo "   1. 🌐 Go to: https://github.com/${{ github.repository }}"
+          echo "   2. 📦 Look for 'Publish this Action to the GitHub Marketplace' banner"
+          echo "   3. 🖱️  Click the banner or go to the Releases tab"
+          echo "   4. ✏️  Fill in the marketplace form with suggested details:"
+          echo "      - Name: SSH Remote Script Executor"
+          echo "      - Description: Execute scripts on remote hosts via SSH"
+          echo "      - Categories: Deployment, Utilities"
+          echo "      - Tags: ssh, remote, deployment, scripts, automation"
+          echo "   5. 📤 Submit for publication"
+          echo ""
+          echo "🎯 The action will be reviewed and published to GitHub Marketplace!"
+          
+          # Try to open the marketplace page (this works in some environments)
+          echo "🔗 Attempting to open marketplace publication page..."
+          gh repo view ${{ github.repository }} --web || echo "   Manual navigation required"
+        else
+          echo "⚠️  MARKETPLACE PUBLICATION NOT AVAILABLE:"
+          echo "   📋 Repository requirements not met"
+          echo ""
+          echo "📝 To enable marketplace publication:"
+          echo "   1. 🌐 Make repository public: Settings → Change repository visibility → Make public"
+          echo "   2. ✅ Ensure action.yml has branding configuration"
+          echo "   3. 📖 Add comprehensive README with usage examples"
+          echo "   4. 🔄 Create a new release after meeting requirements"
+          echo ""
+          echo "🎯 Release completed successfully (private repository)"
+        fi
+        
+        echo "📊 View release: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }}"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
@@ -268,7 +301,7 @@ jobs:
   create-marketplace-issue:
     runs-on: ubuntu-latest
     needs: [release, update-major-tag]
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.release.outputs.marketplace-ready == 'true'
     
     permissions:
       contents: write
