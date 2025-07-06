@@ -19,6 +19,9 @@ inputs:
   script:
     description: 'Script to execute on the remote host'
     required: true
+  envs:
+    description: 'Environment variables to pass to the script (comma-separated, e.g., "VAR1=value1,VAR2=value2")'
+    required: false
 
 runs:
   using: 'docker'
@@ -29,6 +32,7 @@ runs:
     - ${{ inputs.password }}
     - ${{ inputs.port }}
     - ${{ inputs.script }}
+    - ${{ inputs.envs }}
 
 branding:
   icon: 'terminal'

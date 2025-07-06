@@ -1,0 +1,90 @@
+name: Marketplace Publication Check
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Check every 6 hours
+  workflow_dispatch:  # Allow manual trigger
+  issues:
+    types: [opened, edited]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-marketplace-status:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Check Marketplace Publication Status
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        echo "🔍 Checking marketplace publication status..."
+        
+        # Get repository name parts
+        REPO_OWNER=$(echo ${{ github.repository }} | cut -d'/' -f1)
+        REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)
+        
+        # Check if action is published to marketplace
+        MARKETPLACE_URL="https://github.com/marketplace/actions/$REPO_NAME"
+        
+        # Try to check if the action exists on marketplace
+        if curl -s -o /dev/null -w "%{http_code}" "$MARKETPLACE_URL" | grep -q "200"; then
+          echo "✅ Action found on GitHub Marketplace: $MARKETPLACE_URL"
+          
+          # Find and close open marketplace publication issues
+          gh issue list --repo ${{ github.repository }} --state open --label "marketplace" --json number,title | \
+          jq -r '.[] | select(.title | contains("Publish") and contains("to GitHub Marketplace")) | .number' | \
+          while read -r issue_number; do
+            if [ -n "$issue_number" ]; then
+              echo "📝 Closing marketplace publication issue #$issue_number"
+              gh issue close $issue_number --repo ${{ github.repository }} --comment "🎉 **Marketplace Publication Completed!**
+
+              ✅ This action has been successfully published to GitHub Marketplace!
+              
+              🔗 **Marketplace URL**: $MARKETPLACE_URL
+              
+              📦 **Usage**: 
+              \`\`\`yaml
+              uses: ${{ github.repository }}@v1
+              \`\`\`
+              
+              🎯 The action is now available for the community to discover and use.
+              
+              *This issue was automatically closed by the marketplace check workflow.*"
+            fi
+          done
+        else
+          echo "⏳ Action not yet published to marketplace or not accessible"
+          echo "🔗 Expected marketplace URL: $MARKETPLACE_URL"
+        fi
+        
+  close-marketplace-issue:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'opened' && contains(github.event.issue.title, 'Marketplace publication completed')
+    
+    steps:
+    - name: Auto-close completed marketplace issues
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        echo "🔄 Processing marketplace completion notification..."
+        
+        # If someone manually reports marketplace publication completion
+        if echo "${{ github.event.issue.body }}" | grep -q -i "published\|completed\|live"; then
+          echo "✅ Marketplace publication reported as completed"
+          
+          # Close the original publication tracking issue
+          gh issue close ${{ github.event.issue.number }} --repo ${{ github.repository }} --comment "🎉 Thank you for confirming the marketplace publication!
+
+          ✅ **Action successfully published to GitHub Marketplace**
+          
+          🔗 Users can now discover and use this action from the marketplace.
+          
+          📦 **Usage**:
+          \`\`\`yaml
+          uses: ${{ github.repository }}@v1
+          \`\`\`"
+        fi 

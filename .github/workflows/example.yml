@@ -39,4 +39,56 @@ jobs:
           echo "Running system maintenance..."
           df -h
           free -m
-          echo "Maintenance completed!" 
+          echo "Maintenance completed!"
+    
+    - name: Deploy with environment variables
+      uses: ./
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        password: ${{ secrets.SERVER_PASSWORD }}
+        envs: 'DEPLOY_ENV=staging,APP_VERSION=1.0.0,NODE_ENV=production'
+        script: |
+          #!/bin/bash
+          echo "=== Deployment with Environment Variables ==="
+          echo "Environment: $DEPLOY_ENV"
+          echo "App Version: $APP_VERSION"
+          echo "Node Environment: $NODE_ENV"
+          
+          # Example usage of environment variables
+          if [ "$DEPLOY_ENV" = "production" ]; then
+            echo "🚀 Production deployment detected"
+          else
+            echo "🧪 Staging deployment detected"
+          fi
+          
+          echo "Deployment completed!"
+    
+    - name: Complex environment variables example
+      uses: ./
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        password: ${{ secrets.SERVER_PASSWORD }}
+        envs: |
+          DATABASE_URL=${{ secrets.DATABASE_URL }},
+          API_KEY=${{ secrets.API_KEY }},
+          DEBUG=true,
+          LOG_LEVEL=info,
+          MAX_CONNECTIONS=100
+        script: |
+          #!/bin/bash
+          echo "=== Complex Environment Variables Test ==="
+          echo "Database configured: $([ -n "$DATABASE_URL" ] && echo "✅ Yes" || echo "❌ No")"
+          echo "API Key configured: $([ -n "$API_KEY" ] && echo "✅ Yes" || echo "❌ No")"
+          echo "Debug mode: $DEBUG"
+          echo "Log level: $LOG_LEVEL"
+          echo "Max connections: $MAX_CONNECTIONS"
+          
+          # Example of conditional logic based on environment variables
+          if [ "$DEBUG" = "true" ]; then
+            echo "🐛 Debug mode enabled - showing detailed information"
+            env | grep -E "(DATABASE_URL|API_KEY|DEBUG|LOG_LEVEL|MAX_CONNECTIONS)" | sed 's/=.*/=***/'
+          fi
+          
+          echo "Environment variables test completed!" 

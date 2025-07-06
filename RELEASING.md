@@ -51,19 +51,36 @@ The workflow (`.github/workflows/release.yml`) will automatically:
 3. **Release** - Create GitHub release with generated notes
 4. **Tag Management** - Update major version tags (v1, v2, etc.)
 
-### 4. Publish to GitHub Marketplace
+### 4. Automated Marketplace Publication Process
 
-After the release is created:
+The release workflow now includes automation to streamline marketplace publication:
 
+#### **Automated Steps:**
+1. **✅ Validates marketplace requirements** - Checks repository visibility, branding, documentation
+2. **📋 Prepares marketplace metadata** - Generates suggested tags, categories, and descriptions
+3. **📝 Creates tracking issue** - Automatically creates an issue with publication checklist
+4. **🔍 Monitors publication status** - Checks every 6 hours if action is published
+5. **🎯 Auto-closes issues** - Closes tracking issues when publication is detected
+
+#### **Manual Steps (Required):**
 1. **Navigate to your repository** on GitHub
-2. **Go to the main page** and look for the marketplace banner
+2. **Look for the marketplace banner** or go to Releases tab
 3. **Click "Publish this Action to the GitHub Marketplace"**
-4. **Fill in the marketplace details**:
+4. **Fill in the marketplace form** with the suggested details:
    - Action name: `SSH Remote Script Executor`
-   - Description: `Execute scripts on remote hosts via SSH`
+   - Description: `Execute scripts on remote hosts via SSH with password authentication`
    - Categories: `Deployment`, `Utilities`
-   - Tags: `ssh`, `remote`, `deployment`, `scripts`
+   - Tags: `ssh`, `remote`, `deployment`, `scripts`, `automation`
 5. **Submit for publication**
+
+#### **Check Publication Status:**
+```bash
+# Check if action is published to marketplace
+./scripts/check-marketplace.sh
+
+# Manually trigger marketplace status check
+gh workflow run marketplace-check.yml
+```
 
 ## Version Management
 
