@@ -1,0 +1,35 @@
+name: 'SSH Remote Script Executor'
+description: 'Execute scripts on remote hosts via SSH'
+author: 'GitHub Action'
+
+inputs:
+  host:
+    description: 'Remote host to connect to'
+    required: true
+  username:
+    description: 'SSH username'
+    required: true
+  password:
+    description: 'SSH password'
+    required: true
+  port:
+    description: 'SSH port'
+    required: false
+    default: '22'
+  script:
+    description: 'Script to execute on the remote host'
+    required: true
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.host }}
+    - ${{ inputs.username }}
+    - ${{ inputs.password }}
+    - ${{ inputs.port }}
+    - ${{ inputs.script }}
+
+branding:
+  icon: 'terminal'
+  color: 'gray-dark' 
